@@ -5,6 +5,7 @@ import { useGlobalLoading } from './hooks/useGlobalLoading';
 import { usePlaygroundStore } from './store';
 import useChatActions from './hooks/useChatActions';
 import useSessionLoader from './hooks/useSessionLoader';
+import useAIChatStreamHandler from './hooks/useAIStreamHandler';
 import { LOADING_MESSAGES, LOADING_DURATIONS } from './utils/loadingUtils';
 import { getOrCreateUserId } from './utils/userUtils';
 // Motion imports for animations
@@ -38,6 +39,7 @@ function App() {
   // Hooks
   const { initializePlayground, clearChat } = useChatActions();
   const { getSessions } = useSessionLoader();
+  const { handleStreamResponse } = useAIChatStreamHandler();
 
   // Local state for UI
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -95,10 +97,16 @@ function App() {
     scrollToBottom();
   }, [messages, isStreaming]);
 
-  const handleSendMessage = useCallback((text: string) => {
-    // This will be handled by ChatInput component with useAIChatStreamHandler
-    console.log('Message sent:', text);
-  }, []);
+  const handleSendMessage = useCallback(async (text: string) => {
+    if (text.trim() && !isStreaming) {
+      try {
+        // Use AI stream handler for real API call
+        await handleStreamResponse(text.trim());
+      } catch (error) {
+        console.error('Error sending message:', error);
+      }
+    }
+  }, [handleStreamResponse, isStreaming]);
 
   const handleNewChat = useCallback(() => {
     clearChat();
@@ -208,6 +216,7 @@ function App() {
                       toolCalls={message.tool_calls}
                       images={message.images}
                       streamingError={message.streamingError}
+                      isStreaming={isStreaming && index === messages.length - 1}
                     />
                   </Suspense>
                 ))}
