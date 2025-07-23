@@ -7,6 +7,10 @@ interface PlaygroundStore {
   chatInputRef: RefObject<HTMLTextAreaElement> | null
   setChatInputRef: (ref: RefObject<HTMLTextAreaElement>) => void
 
+  // User management
+  userId: string | null
+  setUserId: (userId: string | null) => void
+
   // Messages
   messages: PlaygroundChatMessage[]
   setMessages: (messages: PlaygroundChatMessage[] | ((prev: PlaygroundChatMessage[]) => PlaygroundChatMessage[])) => void
@@ -46,10 +50,14 @@ interface PlaygroundStore {
   setHasStorage: (hasStorage: boolean) => void
 }
 
-export const usePlaygroundStore = create<PlaygroundStore>((set, get) => ({
+export const usePlaygroundStore = create<PlaygroundStore>((set) => ({
   // Chat input reference
   chatInputRef: null,
   setChatInputRef: (ref) => set({ chatInputRef: ref }),
+
+  // User management
+  userId: null,
+  setUserId: (userId) => set({ userId }),
 
   // Messages
   messages: [],

@@ -4,14 +4,14 @@ import { Bot, User, Copy, ThumbsUp, ThumbsDown, AlertCircle, Wrench, Image as Im
 // Motion imports for animations
 import { motion } from 'motion/react';
 import ReactMarkdown from 'react-markdown';
-import { ToolCall } from '@/types/playground';
+import { ToolCall, ImageData } from '@/types/playground';
 
 interface ChatMessageProps {
   message: string;
   isBot: boolean;
   timestamp: string;
   toolCalls?: ToolCall[];
-  images?: string[];
+  images?: ImageData[];
   streamingError?: boolean;
 }
 
@@ -205,8 +205,8 @@ const ChatMessage: React.FC<ChatMessageProps> = React.memo(({
                     transition={{ delay: 0.1 * index }}
                   >
                     <img
-                      src={image}
-                      alt={`Generated image ${index + 1}`}
+                      src={image.url}
+                      alt={image.revised_prompt || `Generated image ${index + 1}`}
                       className="w-full h-auto"
                       loading="lazy"
                     />

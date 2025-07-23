@@ -6,6 +6,7 @@ import { usePlaygroundStore } from './store';
 import useChatActions from './hooks/useChatActions';
 import useSessionLoader from './hooks/useSessionLoader';
 import { LOADING_MESSAGES, LOADING_DURATIONS } from './utils/loadingUtils';
+import { getOrCreateUserId } from './utils/userUtils';
 // Motion imports for animations
 import { AnimatePresence, motion } from 'motion/react';
 import { Menu } from 'lucide-react';
@@ -26,7 +27,8 @@ function App() {
   const {
     messages,
     isStreaming,
-    sessionsData
+    sessionsData,
+    setUserId
   } = usePlaygroundStore();
 
   // URL state management
@@ -40,6 +42,12 @@ function App() {
   // Local state for UI
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Initialize user ID on mount
+  useEffect(() => {
+    const userId = getOrCreateUserId();
+    setUserId(userId);
+  }, [setUserId]);
 
   // Initialize playground on mount
   useEffect(() => {
@@ -172,7 +180,15 @@ function App() {
             ) : (
             <div className="max-w-4xl mx-auto px-3 xs:px-4 sm:px-6 py-4 xs:py-6 sm:py-8 relative min-w-0">
               <AnimatePresence mode="popLayout">
-                {messages.map((message, index) => (
+                {messages
+                  .filter((message) => {
+                    // Don't show empty agent messages without tool calls
+                    if (message.role === 'agent' && !message.content && (!message.tool_calls || message.tool_calls.length === 0)) {
+                      return false;
+                    }
+                    return true;
+                  })
+                  .map((message, index) => (
                   <Suspense
                     key={`${message.created_at}-${index}`}
                     fallback={
@@ -189,22 +205,32 @@ function App() {
                         hour: '2-digit',
                         minute: '2-digit'
                       })}
-
+                      toolCalls={message.tool_calls}
+                      images={message.images}
+                      streamingError={message.streamingError}
                     />
                   </Suspense>
                 ))}
               </AnimatePresence>
 
               <AnimatePresence>
-                {isStreaming && (
-                  <Suspense fallback={
-                    <div className="h-16 bg-gray-100 rounded-lg flex items-center justify-center">
-                      <LoadingSpinner size="sm" />
-                    </div>
-                  }>
-                    <TypingIndicator key="typing-indicator" />
-                  </Suspense>
-                )}
+                {isStreaming && (() => {
+                  // Only show typing indicator if there's no agent message or the last agent message is empty
+                  const lastMessage = messages[messages.length - 1];
+                  const shouldShowTyping = !lastMessage ||
+                    lastMessage.role !== 'agent' ||
+                    (!lastMessage.content && (!lastMessage.tool_calls || lastMessage.tool_calls.length === 0));
+
+                  return shouldShowTyping ? (
+                    <Suspense fallback={
+                      <div className="h-16 bg-gray-100 rounded-lg flex items-center justify-center">
+                        <LoadingSpinner size="sm" />
+                      </div>
+                    }>
+                      <TypingIndicator key="typing-indicator" />
+                    </Suspense>
+                  ) : null;
+                })()}
               </AnimatePresence>
               <div ref={messagesEndRef} />
             </div>

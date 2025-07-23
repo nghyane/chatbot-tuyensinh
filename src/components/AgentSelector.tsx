@@ -55,7 +55,8 @@ const AgentSelector: React.FC<AgentSelectorProps> = ({ className = '' }) => {
             </p>
             {selectedAgent && (
               <p className="text-xs text-gray-500 truncate">
-                {selectedAgent.model.provider} - {selectedAgent.model.model}
+                {/* {selectedAgent.model?.provider} - {selectedAgent.model?.model} */}
+                Model information
               </p>
             )}
           </div>
@@ -91,7 +92,8 @@ const AgentSelector: React.FC<AgentSelectorProps> = ({ className = '' }) => {
                     {agent.label}
                   </p>
                   <p className="text-xs text-gray-500 truncate">
-                    {agent.model.provider} - {agent.model.model}
+                    {/* {agent.model?.provider} - {agent.model?.model} */}
+                    Model information
                   </p>
                   {agent.storage && (
                     <span className="inline-block mt-1 px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full">

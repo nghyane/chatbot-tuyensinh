@@ -19,5 +19,8 @@ export const APIRoutes = {
     agentId: string,
     sessionId: string
   ) =>
-    `${PlaygroundApiUrl}/v1/playground/agents/${agentId}/sessions/${sessionId}`
+    `${PlaygroundApiUrl}/v1/playground/agents/${agentId}/sessions/${sessionId}`,
+
+  GetChatHistory: (PlaygroundApiUrl: string, sessionId: string) =>
+    `${PlaygroundApiUrl}/v1/chat/history/${sessionId}`
 }

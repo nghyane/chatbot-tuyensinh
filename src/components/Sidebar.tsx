@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 // Optimized individual icon imports for better tree-shaking
 import {
   MessageSquare,
@@ -12,13 +12,15 @@ import {
   Settings,
   HelpCircle,
   X,
-  Loader2
+  Loader2,
+  Eye
 } from 'lucide-react';
 // Motion imports for animations
 import { motion } from 'motion/react';
 import { usePlaygroundStore } from '@/store';
 import { SessionEntry } from '@/types/playground';
 import { formatTimestamp } from '@/lib/utils';
+import ChatHistoryModal from './ChatHistoryModal';
 
 interface SidebarProps {
   sessions: SessionEntry[];
@@ -36,12 +38,27 @@ const Sidebar: React.FC<SidebarProps> = React.memo(({
   onClose
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedSessionForHistory, setSelectedSessionForHistory] = useState<SessionEntry | null>(null);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const { isSessionsLoading } = usePlaygroundStore();
 
   // Filter sessions based on search query
   const filteredSessions = sessions.filter(session =>
     session.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  // Handle view history
+  const handleViewHistory = (session: SessionEntry, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent triggering onSelectConversation
+    setSelectedSessionForHistory(session);
+    setIsHistoryModalOpen(true);
+  };
+
+  // Handle close history modal
+  const handleCloseHistoryModal = () => {
+    setIsHistoryModalOpen(false);
+    setSelectedSessionForHistory(null);
+  };
   return (
     <>
       {/* Mobile overlay removed since sidebar is full-screen */}
@@ -193,39 +210,54 @@ const Sidebar: React.FC<SidebarProps> = React.memo(({
             </div>
           ) : (
             filteredSessions.map((session, index) => (
-              <motion.button
+              <motion.div
                 key={session.session_id}
-                onClick={() => onSelectConversation(session.session_id)}
-                className="w-full text-left px-2 sm:px-3 py-2.5 sm:py-2 rounded-lg touch-manipulation transition-colors duration-200 text-gray-300 hover:bg-gray-800/50"
+                className="relative group"
                 initial={{ x: -50, opacity: 0 }}
                 animate={{
                   x: 0,
                   opacity: 1,
                   transition: { delay: 0.7 + index * 0.1, duration: 0.3 }
                 }}
-                whileHover={{
-                  scale: 1.02,
-                  backgroundColor: "rgba(55, 65, 81, 0.5)",
-                  transition: { duration: 0.2 }
-                }}
-                whileTap={{ scale: 0.98 }}
               >
-                <div className="flex items-center gap-2">
-                  <motion.div
-                    whileHover={{ rotate: 10 }}
-                    transition={{ duration: 0.2 }}
-                    className="flex-shrink-0"
-                  >
-                    <MessageSquare className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                  </motion.div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs sm:text-sm font-medium truncate">{session.title}</p>
-                    <p className="text-xs text-gray-400 truncate">
-                      {formatTimestamp(session.created_at)}
-                    </p>
+                <motion.button
+                  onClick={() => onSelectConversation(session.session_id)}
+                  className="w-full text-left px-2 sm:px-3 py-2.5 sm:py-2 rounded-lg touch-manipulation transition-colors duration-200 text-gray-300 hover:bg-gray-800/50"
+                  whileHover={{
+                    scale: 1.02,
+                    backgroundColor: "rgba(55, 65, 81, 0.5)",
+                    transition: { duration: 0.2 }
+                  }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <div className="flex items-center gap-2">
+                    <motion.div
+                      whileHover={{ rotate: 10 }}
+                      transition={{ duration: 0.2 }}
+                      className="flex-shrink-0"
+                    >
+                      <MessageSquare className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    </motion.div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs sm:text-sm font-medium truncate">{session.title}</p>
+                      <p className="text-xs text-gray-400 truncate">
+                        {formatTimestamp(session.created_at)}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              </motion.button>
+                </motion.button>
+
+                {/* View History Button */}
+                <motion.button
+                  onClick={(e) => handleViewHistory(session, e)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-gray-400 hover:text-blue-300 hover:bg-gray-700/50 rounded-md opacity-0 group-hover:opacity-100 transition-all duration-200"
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  title="Xem lịch sử chi tiết"
+                >
+                  <Eye className="w-3.5 h-3.5" />
+                </motion.button>
+              </motion.div>
             ))
           )}
         </div>
@@ -265,6 +297,16 @@ const Sidebar: React.FC<SidebarProps> = React.memo(({
         </div>
       </div>
     </motion.div>
+
+    {/* Chat History Modal */}
+    {selectedSessionForHistory && (
+      <ChatHistoryModal
+        isOpen={isHistoryModalOpen}
+        onClose={handleCloseHistoryModal}
+        sessionId={selectedSessionForHistory.session_id}
+        sessionTitle={selectedSessionForHistory.title}
+      />
+    )}
     </>
   );
 });

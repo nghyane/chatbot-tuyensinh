@@ -235,6 +235,18 @@ export interface SessionEntry {
   created_at: number
 }
 
+export interface ChatHistoryMessage {
+  role: 'system' | 'user' | 'assistant'
+  content: string
+  created_at: number
+}
+
+export interface ChatHistoryResponse {
+  history: ChatHistoryMessage[]
+  session_id: string
+  count: number
+}
+
 export interface ChatEntry {
   message: {
     role: 'user' | 'system' | 'tool' | 'assistant'

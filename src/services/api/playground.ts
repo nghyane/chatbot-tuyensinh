@@ -2,7 +2,7 @@ import { toast } from 'sonner'
 
 import { APIRoutes } from './routes'
 
-import { Agent, ComboboxAgent, SessionEntry } from '@/types/playground'
+import { Agent, ComboboxAgent, SessionEntry, ChatHistoryResponse } from '@/types/playground'
 
 export const getPlaygroundAgentsAPI = async (
   endpoint: string
@@ -46,13 +46,24 @@ export const getPlaygroundStatusAPI = async (base: string): Promise<number> => {
 
 export const getAllPlaygroundSessionsAPI = async (
   base: string,
-  agentId: string
+  agentId: string,
+  userId?: string | null
 ): Promise<SessionEntry[]> => {
   try {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json'
+    }
+
+    // Add user ID to headers if provided
+    if (userId) {
+      headers['X-User-ID'] = userId
+    }
+
     const response = await fetch(
       APIRoutes.GetPlaygroundSessions(base, agentId),
       {
-        method: 'GET'
+        method: 'GET',
+        headers
       }
     )
     if (!response.ok) {
@@ -71,12 +82,23 @@ export const getAllPlaygroundSessionsAPI = async (
 export const getPlaygroundSessionAPI = async (
   base: string,
   agentId: string,
-  sessionId: string
+  sessionId: string,
+  userId?: string | null
 ) => {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json'
+  }
+
+  // Add user ID to headers if provided
+  if (userId) {
+    headers['X-User-ID'] = userId
+  }
+
   const response = await fetch(
     APIRoutes.GetPlaygroundSession(base, agentId, sessionId),
     {
-      method: 'GET'
+      method: 'GET',
+      headers
     }
   )
   return response.json()
@@ -85,13 +107,62 @@ export const getPlaygroundSessionAPI = async (
 export const deletePlaygroundSessionAPI = async (
   base: string,
   agentId: string,
-  sessionId: string
+  sessionId: string,
+  userId?: string | null
 ) => {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json'
+  }
+
+  // Add user ID to headers if provided
+  if (userId) {
+    headers['X-User-ID'] = userId
+  }
+
   const response = await fetch(
     APIRoutes.DeletePlaygroundSession(base, agentId, sessionId),
     {
-      method: 'DELETE'
+      method: 'DELETE',
+      headers
     }
   )
   return response
+}
+
+export const getChatHistoryAPI = async (
+  base: string,
+  sessionId: string,
+  userId?: string | null
+): Promise<ChatHistoryResponse | null> => {
+  try {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json'
+    }
+
+    // Add user ID to headers if provided
+    if (userId) {
+      headers['X-User-ID'] = userId
+    }
+
+    const response = await fetch(
+      APIRoutes.GetChatHistory(base, sessionId),
+      {
+        method: 'GET',
+        headers
+      }
+    )
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        return null
+      }
+      throw new Error(`Failed to fetch chat history: ${response.statusText}`)
+    }
+
+    return response.json()
+  } catch (error) {
+    console.error('Error fetching chat history:', error)
+    toast.error('Failed to load chat history')
+    return null
+  }
 }

@@ -14,7 +14,6 @@ import {
 } from 'lucide-react';
 // Motion imports for animations
 import { motion } from 'motion/react';
-import AgentSelector from './AgentSelector';
 import { usePlaygroundStore } from '@/store';
 
 interface WelcomeScreenProps {
@@ -193,10 +192,6 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = React.memo(({ onQuestionClic
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.7, duration: 0.5 }}
           >
-            <div className="mb-3">
-              <p className="text-sm font-medium text-gray-700 mb-2">Chọn AI Assistant:</p>
-              <AgentSelector />
-            </div>
 
             {/* Endpoint Status */}
             {!isEndpointLoading && (

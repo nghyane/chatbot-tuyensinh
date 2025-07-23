@@ -25,6 +25,7 @@ const useAIChatStreamHandler = () => {
   const [agentId] = useQueryState('agent')
   const [sessionId, setSessionId] = useQueryState('session')
   const selectedEndpoint = usePlaygroundStore((state) => state.selectedEndpoint)
+  const userId = usePlaygroundStore((state) => state.userId)
   const setStreamingErrorMessage = usePlaygroundStore(
     (state) => state.setStreamingErrorMessage
   )
@@ -36,8 +37,19 @@ const useAIChatStreamHandler = () => {
   const updateMessagesWithErrorState = useCallback(() => {
     setMessages((prevMessages) => {
       const newMessages = [...prevMessages]
-      const lastMessage = newMessages[newMessages.length - 1]
-      if (lastMessage && lastMessage.role === 'agent') {
+      let lastMessage = newMessages[newMessages.length - 1]
+
+      // Create agent message if it doesn't exist yet
+      if (!lastMessage || lastMessage.role !== 'agent') {
+        const agentMessage = {
+          role: 'agent' as const,
+          content: '',
+          tool_calls: [],
+          streamingError: true,
+          created_at: Math.floor(Date.now() / 1000)
+        }
+        newMessages.push(agentMessage)
+      } else {
         lastMessage.streamingError = true
       }
       return newMessages
@@ -135,13 +147,8 @@ const useAIChatStreamHandler = () => {
         created_at: Math.floor(Date.now() / 1000)
       })
 
-      addMessage({
-        role: 'agent',
-        content: '',
-        tool_calls: [],
-        streamingError: false,
-        created_at: Math.floor(Date.now() / 1000) + 1
-      })
+      // Don't add empty agent message immediately
+      // We'll add it when we get the first content chunk
 
       let lastContent = ''
       let newSessionId = sessionId
@@ -156,6 +163,11 @@ const useAIChatStreamHandler = () => {
 
         formData.append('stream', 'true')
         formData.append('session_id', sessionId ?? '')
+
+        // Add user_id if available
+        if (userId) {
+          formData.append('user_id', userId)
+        }
 
         await streamResponse({
           apiUrl: playgroundRunUrl,
@@ -190,13 +202,25 @@ const useAIChatStreamHandler = () => {
             } else if (chunk.event === RunEvent.ToolCallStarted) {
               setMessages((prevMessages) => {
                 const newMessages = [...prevMessages]
-                const lastMessage = newMessages[newMessages.length - 1]
-                if (lastMessage && lastMessage.role === 'agent') {
-                  lastMessage.tool_calls = processChunkToolCalls(
-                    chunk,
-                    lastMessage.tool_calls
-                  )
+                let lastMessage = newMessages[newMessages.length - 1]
+
+                // Create agent message if it doesn't exist yet
+                if (!lastMessage || lastMessage.role !== 'agent') {
+                  const agentMessage = {
+                    role: 'agent' as const,
+                    content: '',
+                    tool_calls: [],
+                    streamingError: false,
+                    created_at: Math.floor(Date.now() / 1000)
+                  }
+                  newMessages.push(agentMessage)
+                  lastMessage = agentMessage
                 }
+
+                lastMessage.tool_calls = processChunkToolCalls(
+                  chunk,
+                  lastMessage.tool_calls
+                )
                 return newMessages
               })
             } else if (
@@ -205,12 +229,22 @@ const useAIChatStreamHandler = () => {
             ) {
               setMessages((prevMessages) => {
                 const newMessages = [...prevMessages]
-                const lastMessage = newMessages[newMessages.length - 1]
-                if (
-                  lastMessage &&
-                  lastMessage.role === 'agent' &&
-                  typeof chunk.content === 'string'
-                ) {
+                let lastMessage = newMessages[newMessages.length - 1]
+
+                // Create agent message if it doesn't exist yet
+                if (!lastMessage || lastMessage.role !== 'agent') {
+                  const agentMessage = {
+                    role: 'agent' as const,
+                    content: '',
+                    tool_calls: [],
+                    streamingError: false,
+                    created_at: Math.floor(Date.now() / 1000)
+                  }
+                  newMessages.push(agentMessage)
+                  lastMessage = agentMessage
+                }
+
+                if (typeof chunk.content === 'string') {
                   const uniqueContent = chunk.content.replace(lastContent, '')
                   lastMessage.content += uniqueContent
                   lastContent = chunk.content
@@ -246,8 +280,6 @@ const useAIChatStreamHandler = () => {
                     lastMessage.audio = chunk.audio
                   }
                 } else if (
-                  lastMessage &&
-                  lastMessage.role === 'agent' &&
                   typeof chunk?.content !== 'string' &&
                   chunk.content !== null
                 ) {
@@ -375,6 +407,7 @@ const useAIChatStreamHandler = () => {
       addMessage,
       updateMessagesWithErrorState,
       selectedEndpoint,
+      userId,
       streamResponse,
       agentId,
       setStreamingErrorMessage,

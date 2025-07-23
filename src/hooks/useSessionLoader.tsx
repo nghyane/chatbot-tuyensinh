@@ -28,6 +28,7 @@ interface SessionResponse {
 const useSessionLoader = () => {
   const setMessages = usePlaygroundStore((state) => state.setMessages)
   const selectedEndpoint = usePlaygroundStore((state) => state.selectedEndpoint)
+  const userId = usePlaygroundStore((state) => state.userId)
   const setIsSessionsLoading = usePlaygroundStore(
     (state) => state.setIsSessionsLoading
   )
@@ -40,7 +41,8 @@ const useSessionLoader = () => {
         setIsSessionsLoading(true)
         const sessions = await getAllPlaygroundSessionsAPI(
           selectedEndpoint,
-          agentId
+          agentId,
+          userId
         )
         setSessionsData(sessions)
       } catch {
@@ -49,7 +51,7 @@ const useSessionLoader = () => {
         setIsSessionsLoading(false)
       }
     },
-    [selectedEndpoint, setSessionsData, setIsSessionsLoading]
+    [selectedEndpoint, userId, setSessionsData, setIsSessionsLoading]
   )
 
   const getSession = useCallback(
@@ -62,7 +64,8 @@ const useSessionLoader = () => {
         const response = (await getPlaygroundSessionAPI(
           selectedEndpoint,
           agentId,
-          sessionId
+          sessionId,
+          userId
         )) as SessionResponse
 
         if (response && response.memory) {
