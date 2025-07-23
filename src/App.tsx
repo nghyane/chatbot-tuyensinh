@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect, useCallback, useMemo, Suspense, lazy } from 'react';
 import LoadingSpinner from './components/LoadingSpinner';
+import { useGlobalLoading } from './hooks/useGlobalLoading';
+import { LOADING_MESSAGES, LOADING_DURATIONS } from './utils/loadingUtils';
 // Motion imports for animations
 import { AnimatePresence, motion } from 'motion/react';
 import { Menu } from 'lucide-react';
@@ -28,6 +30,8 @@ interface Conversation {
 }
 
 function App() {
+  const { showLoading, hideLoading } = useGlobalLoading();
+
   const [conversations, setConversations] = useState<Conversation[]>([
     {
       id: '1',
@@ -56,6 +60,18 @@ function App() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, []);
 
+  // Show loading ONLY on initial page load/reload - covers entire UI
+  useEffect(() => {
+    showLoading(LOADING_MESSAGES.INITIALIZING, LOADING_DURATIONS.NORMAL);
+
+    // Simulate loading time for initial app setup
+    const timer = setTimeout(() => {
+      hideLoading();
+    }, LOADING_DURATIONS.NORMAL);
+
+    return () => clearTimeout(timer);
+  }, [showLoading, hideLoading]);
+
   // Prevent body scroll when mobile sidebar is open
   useEffect(() => {
     if (isSidebarOpen) {
@@ -82,10 +98,10 @@ function App() {
       timestamp: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
     };
 
-    setConversations(prev => prev.map(conv => 
-      conv.id === activeConversationId 
-        ? { 
-            ...conv, 
+    setConversations(prev => prev.map(conv =>
+      conv.id === activeConversationId
+        ? {
+            ...conv,
             messages: [...conv.messages, newMessage],
             title: conv.messages.length === 0 ? text.slice(0, 30) + '...' : conv.title
           }
@@ -94,7 +110,7 @@ function App() {
 
     setIsTyping(true);
 
-    // Simulate bot response
+    // Simulate bot response (NO global loading during chat - only use typing indicator)
     setTimeout(() => {
       const botResponse: Message = {
         id: (Date.now() + 1).toString(),
@@ -102,9 +118,9 @@ function App() {
         isBot: true,
         timestamp: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
       };
-      
-      setConversations(prev => prev.map(conv => 
-        conv.id === activeConversationId 
+
+      setConversations(prev => prev.map(conv =>
+        conv.id === activeConversationId
           ? { ...conv, messages: [...conv.messages, botResponse] }
           : conv
       ));
