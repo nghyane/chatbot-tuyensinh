@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 // Optimized individual icon imports for better tree-shaking
 import {
   MessageSquare,
@@ -11,28 +11,37 @@ import {
   Phone,
   Settings,
   HelpCircle,
-  X
+  X,
+  Loader2
 } from 'lucide-react';
 // Motion imports for animations
 import { motion } from 'motion/react';
+import { usePlaygroundStore } from '@/store';
+import { SessionEntry } from '@/types/playground';
+import { formatTimestamp } from '@/lib/utils';
 
 interface SidebarProps {
-  conversations: Array<{ id: string; title: string; timestamp: string }>;
-  activeConversation: string;
+  sessions: SessionEntry[];
   onNewChat: () => void;
-  onSelectConversation: (id: string) => void;
+  onSelectConversation: (sessionId: string) => void;
   isOpen?: boolean;
   onClose?: () => void;
 }
 
 const Sidebar: React.FC<SidebarProps> = React.memo(({
-  conversations,
-  activeConversation,
+  sessions,
   onNewChat,
   onSelectConversation,
   isOpen = false,
   onClose
 }) => {
+  const [searchQuery, setSearchQuery] = useState('');
+  const { isSessionsLoading } = usePlaygroundStore();
+
+  // Filter sessions based on search query
+  const filteredSessions = sessions.filter(session =>
+    session.title.toLowerCase().includes(searchQuery.toLowerCase())
+  );
   return (
     <>
       {/* Mobile overlay removed since sidebar is full-screen */}
@@ -148,6 +157,8 @@ const Sidebar: React.FC<SidebarProps> = React.memo(({
           <motion.input
             type="text"
             placeholder="Tìm kiếm..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-10 pr-3 py-2.5 sm:py-2 bg-gray-800/50 border border-gray-600/50 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400/50"
             whileFocus={{
               scale: 1.02,
@@ -168,43 +179,55 @@ const Sidebar: React.FC<SidebarProps> = React.memo(({
         }}
       >
         <div className="space-y-1">
-          {conversations.map((conv, index) => (
-            <motion.button
-              key={conv.id}
-              onClick={() => onSelectConversation(conv.id)}
-              className={`w-full text-left px-2 sm:px-3 py-2.5 sm:py-2 rounded-lg touch-manipulation transition-colors duration-200 ${
-                activeConversation === conv.id
-                  ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg'
-                  : 'text-gray-300 hover:bg-gray-800/50'
-              }`}
-              initial={{ x: -50, opacity: 0 }}
-              animate={{
-                x: 0,
-                opacity: 1,
-                transition: { delay: 0.7 + index * 0.1, duration: 0.3 }
-              }}
-              whileHover={{
-                scale: 1.02,
-                backgroundColor: activeConversation === conv.id ? undefined : "rgba(55, 65, 81, 0.5)",
-                transition: { duration: 0.2 }
-              }}
-              whileTap={{ scale: 0.98 }}
-            >
-              <div className="flex items-center gap-2">
-                <motion.div
-                  whileHover={{ rotate: 10 }}
-                  transition={{ duration: 0.2 }}
-                  className="flex-shrink-0"
-                >
-                  <MessageSquare className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                </motion.div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs sm:text-sm font-medium truncate">{conv.title}</p>
-                  <p className="text-xs text-gray-400 truncate">{conv.timestamp}</p>
+{isSessionsLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+              <span className="ml-2 text-sm text-gray-400">Đang tải...</span>
+            </div>
+          ) : filteredSessions.length === 0 ? (
+            <div className="text-center py-8">
+              <MessageSquare className="w-8 h-8 text-gray-500 mx-auto mb-2" />
+              <p className="text-sm text-gray-400">
+                {searchQuery ? 'Không tìm thấy cuộc trò chuyện' : 'Chưa có cuộc trò chuyện nào'}
+              </p>
+            </div>
+          ) : (
+            filteredSessions.map((session, index) => (
+              <motion.button
+                key={session.session_id}
+                onClick={() => onSelectConversation(session.session_id)}
+                className="w-full text-left px-2 sm:px-3 py-2.5 sm:py-2 rounded-lg touch-manipulation transition-colors duration-200 text-gray-300 hover:bg-gray-800/50"
+                initial={{ x: -50, opacity: 0 }}
+                animate={{
+                  x: 0,
+                  opacity: 1,
+                  transition: { delay: 0.7 + index * 0.1, duration: 0.3 }
+                }}
+                whileHover={{
+                  scale: 1.02,
+                  backgroundColor: "rgba(55, 65, 81, 0.5)",
+                  transition: { duration: 0.2 }
+                }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <div className="flex items-center gap-2">
+                  <motion.div
+                    whileHover={{ rotate: 10 }}
+                    transition={{ duration: 0.2 }}
+                    className="flex-shrink-0"
+                  >
+                    <MessageSquare className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  </motion.div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs sm:text-sm font-medium truncate">{session.title}</p>
+                    <p className="text-xs text-gray-400 truncate">
+                      {formatTimestamp(session.created_at)}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            </motion.button>
-          ))}
+              </motion.button>
+            ))
+          )}
         </div>
       </motion.div>
 

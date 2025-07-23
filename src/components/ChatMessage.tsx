@@ -1,16 +1,39 @@
-import React from 'react';
+import React, { useState } from 'react';
 // Optimized individual icon imports for better tree-shaking
-import { Bot, User, Copy, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { Bot, User, Copy, ThumbsUp, ThumbsDown, AlertCircle, Wrench, Image as ImageIcon } from 'lucide-react';
 // Motion imports for animations
 import { motion } from 'motion/react';
+import ReactMarkdown from 'react-markdown';
+import { ToolCall } from '@/types/playground';
 
 interface ChatMessageProps {
   message: string;
   isBot: boolean;
   timestamp: string;
+  toolCalls?: ToolCall[];
+  images?: string[];
+  streamingError?: boolean;
 }
 
-const ChatMessage: React.FC<ChatMessageProps> = React.memo(({ message, isBot, timestamp }) => {
+const ChatMessage: React.FC<ChatMessageProps> = React.memo(({
+  message,
+  isBot,
+  timestamp,
+  toolCalls,
+  images,
+  streamingError
+}) => {
+  const [copiedText, setCopiedText] = useState<string | null>(null);
+
+  const handleCopy = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedText(text);
+      setTimeout(() => setCopiedText(null), 2000);
+    } catch (error) {
+      console.error('Failed to copy text:', error);
+    }
+  };
   return (
     <motion.div
       className={`flex gap-2 xs:gap-3 sm:gap-4 mb-4 xs:mb-6 sm:mb-8 ${isBot ? 'justify-start' : 'justify-end'} group px-3 xs:px-4 sm:px-0`}
@@ -75,7 +98,9 @@ const ChatMessage: React.FC<ChatMessageProps> = React.memo(({ message, isBot, ti
 
           <motion.div
             className={`relative p-3 xs:p-4 rounded-2xl ${
-              isBot
+              streamingError
+                ? 'bg-gradient-to-br from-red-50 to-red-100/50 border border-red-200/50 shadow-lg'
+                : isBot
                 ? 'bg-gradient-to-br from-blue-50 to-blue-100/50 border border-blue-200/50 shadow-lg'
                 : 'bg-gradient-to-br from-gray-100 to-gray-200/50 border border-gray-200/50 shadow-lg'
             } backdrop-blur-sm`}
@@ -92,11 +117,106 @@ const ChatMessage: React.FC<ChatMessageProps> = React.memo(({ message, isBot, ti
             }}
           >
             <div className={`absolute inset-0 rounded-2xl ${
-              isBot
+              streamingError
+                ? 'bg-gradient-to-br from-red-600/5 to-red-700/5'
+                : isBot
                 ? 'bg-gradient-to-br from-blue-600/5 to-purple-600/5'
                 : 'bg-gradient-to-br from-gray-600/5 to-gray-700/5'
             }`}></div>
-            <p className="whitespace-pre-wrap leading-relaxed text-sm xs:text-base text-gray-800 font-medium relative z-10">{message}</p>
+
+            {/* Error indicator */}
+            {streamingError && (
+              <div className="flex items-center gap-2 mb-2 text-red-600">
+                <AlertCircle className="w-4 h-4" />
+                <span className="text-sm font-medium">Có lỗi xảy ra khi xử lý tin nhắn</span>
+              </div>
+            )}
+
+            {/* Main message content */}
+            <div className="relative z-10">
+              {isBot ? (
+                <div className="prose prose-sm max-w-none text-gray-800 leading-relaxed">
+                  <ReactMarkdown
+                    components={{
+                      p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                      code: ({ children }) => (
+                        <code className="bg-gray-200 px-1 py-0.5 rounded text-sm font-mono">
+                          {children}
+                        </code>
+                      ),
+                      pre: ({ children }) => (
+                        <pre className="bg-gray-100 p-3 rounded-lg overflow-x-auto text-sm">
+                          {children}
+                        </pre>
+                      )
+                    }}
+                  >
+                    {message}
+                  </ReactMarkdown>
+                </div>
+              ) : (
+                <p className="whitespace-pre-wrap leading-relaxed text-sm xs:text-base text-gray-800 font-medium">
+                  {message}
+                </p>
+              )}
+            </div>
+
+            {/* Tool calls */}
+            {toolCalls && toolCalls.length > 0 && (
+              <div className="mt-3 space-y-2">
+                {toolCalls.map((toolCall, index) => (
+                  <motion.div
+                    key={`${toolCall.tool_call_id || index}`}
+                    className="bg-white/50 border border-gray-200 rounded-lg p-3"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 * index }}
+                  >
+                    <div className="flex items-center gap-2 mb-2">
+                      <Wrench className="w-4 h-4 text-blue-600" />
+                      <span className="text-sm font-medium text-gray-700">
+                        {toolCall.tool_name}
+                      </span>
+                      {toolCall.tool_call_error && (
+                        <span className="text-xs bg-red-100 text-red-600 px-2 py-1 rounded">
+                          Error
+                        </span>
+                      )}
+                    </div>
+                    {toolCall.content && (
+                      <p className="text-sm text-gray-600 whitespace-pre-wrap">
+                        {toolCall.content}
+                      </p>
+                    )}
+                  </motion.div>
+                ))}
+              </div>
+            )}
+
+            {/* Images */}
+            {images && images.length > 0 && (
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                {images.map((image, index) => (
+                  <motion.div
+                    key={index}
+                    className="relative rounded-lg overflow-hidden bg-gray-100"
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 0.1 * index }}
+                  >
+                    <img
+                      src={image}
+                      alt={`Generated image ${index + 1}`}
+                      className="w-full h-auto"
+                      loading="lazy"
+                    />
+                    <div className="absolute top-2 right-2">
+                      <ImageIcon className="w-4 h-4 text-white drop-shadow-lg" />
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            )}
           </motion.div>
 
           {isBot && (
@@ -110,10 +230,16 @@ const ChatMessage: React.FC<ChatMessageProps> = React.memo(({ message, isBot, ti
               }}
             >
               <motion.button
-                className="p-1.5 xs:p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg shadow-sm touch-manipulation"
+                className={`p-1.5 xs:p-2 rounded-lg shadow-sm touch-manipulation transition-colors ${
+                  copiedText === message
+                    ? 'text-green-600 bg-green-50'
+                    : 'text-gray-400 hover:text-blue-600 hover:bg-blue-50'
+                }`}
                 whileHover={{ scale: 1.05, rotate: 5 }}
                 whileTap={{ scale: 0.95 }}
                 transition={{ duration: 0.2 }}
+                onClick={() => handleCopy(message)}
+                title={copiedText === message ? 'Đã sao chép!' : 'Sao chép tin nhắn'}
               >
                 <Copy className="w-3.5 h-3.5 xs:w-4 xs:h-4" />
               </motion.button>

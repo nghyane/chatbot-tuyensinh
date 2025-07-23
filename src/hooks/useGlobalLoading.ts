@@ -1,5 +1,5 @@
 import { useCallback, useRef } from 'react';
-import { useLoading } from '../contexts/LoadingContext';
+import { useLoading } from '@/contexts/LoadingContext';
 
 export const useGlobalLoading = () => {
   const { setGlobalLoading, setLoadingMessage, isGlobalLoading } = useLoading();

@@ -14,12 +14,15 @@ import {
 } from 'lucide-react';
 // Motion imports for animations
 import { motion } from 'motion/react';
+import AgentSelector from './AgentSelector';
+import { usePlaygroundStore } from '@/store';
 
 interface WelcomeScreenProps {
   onQuestionClick: (question: string) => void;
 }
 
 const WelcomeScreen: React.FC<WelcomeScreenProps> = React.memo(({ onQuestionClick }) => {
+  const { isEndpointActive, isEndpointLoading } = usePlaygroundStore();
 
   const quickQuestions = useMemo(() => [
     {
@@ -175,13 +178,45 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = React.memo(({ onQuestionClic
             Trợ lý tư vấn tuyển sinh thông minh
           </motion.p>
           <motion.p
-            className="text-sm sm:text-base text-gray-600 font-medium px-4"
+            className="text-sm sm:text-base text-gray-600 font-medium px-4 mb-6"
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.6, duration: 0.5 }}
           >
             Tôi có thể giúp bạn tìm hiểu về các ngành học, học phí, thủ tục xét tuyển và nhiều thông tin khác
           </motion.p>
+
+          {/* Agent Selector */}
+          <motion.div
+            className="max-w-md mx-auto mb-6"
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.7, duration: 0.5 }}
+          >
+            <div className="mb-3">
+              <p className="text-sm font-medium text-gray-700 mb-2">Chọn AI Assistant:</p>
+              <AgentSelector />
+            </div>
+
+            {/* Endpoint Status */}
+            {!isEndpointLoading && (
+              <div className="flex items-center justify-center gap-2 text-sm">
+                <div className={`w-2 h-2 rounded-full ${
+                  isEndpointActive ? 'bg-green-500' : 'bg-red-500'
+                }`} />
+                <span className={isEndpointActive ? 'text-green-600' : 'text-red-600'}>
+                  {isEndpointActive ? 'Kết nối thành công' : 'Không thể kết nối'}
+                </span>
+              </div>
+            )}
+
+            {isEndpointLoading && (
+              <div className="flex items-center justify-center gap-2 text-sm text-gray-500">
+                <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse" />
+                <span>Đang kiểm tra kết nối...</span>
+              </div>
+            )}
+          </motion.div>
         </motion.div>
 
         {/* Quick Questions Grid */}

@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import LoadingSpinner from './LoadingSpinner';
-import { useLoading } from '../contexts/LoadingContext';
-import { useGlobalLoading } from '../hooks/useGlobalLoading';
+import { useLoading } from '@/contexts/LoadingContext';
+import { useGlobalLoading } from '@/hooks/useGlobalLoading';
 
 const GlobalLoadingOverlay: React.FC = () => {
   const { isGlobalLoading, loadingMessage } = useLoading();
